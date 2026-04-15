@@ -1,0 +1,61 @@
+# 软件工程导论 CI/CD 实验（完整版：CI 测试 + CD 构建打包）
+name: 软件工程 CI/CD 实验
+
+# 触发条件：提交代码到 main 分支就自动运行
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # ====================
+  # 第一部分：CI 持续集成
+  # 功能：自动拉代码 → 运行测试 → 检查代码是否正确
+  # ====================
+  CI-Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 拉取仓库代码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 3. 运行单元测试（CI 核心步骤）
+        run: |
+          python -m unittest test_main.py -v
+
+  # ====================
+  # 第二部分：CD 持续部署
+  # 功能：测试通过后 → 自动构建项目 → 生成可发布文件
+  # ====================
+  CD-Build:
+    # 重要：必须等 CI 测试通过后，才会执行 CD
+    needs: CI-Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 3. 项目构建打包（CD 核心步骤）
+        run: |
+          echo "========== CD 持续部署开始 =========="
+          echo "正在构建项目..."
+          mkdir -p build
+          cp main.py build/
+          cp test_main.py build/
+          echo "构建完成！生成发布文件：build/"
+          ls build
+          echo "========== CD 持续部署结束 =========="
+
+      - name: 4. 上传构建产物（可下载交付）
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/
